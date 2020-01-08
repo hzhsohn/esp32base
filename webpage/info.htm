@@ -1,0 +1,182 @@
+﻿<!DOCTYPE html> 
+<html lang="en"> 
+<head> 
+<meta charset=utf-8 /> 
+<meta name="viewport" content="width=620" /> 
+<title>韩讯联控KT485</title> 
+<style> 
+#chat { width: 97%; }
+.them { font-weight: bold; }
+.them:before { content: 'feedback: '; color:#036; font-size: 14px; }
+#log {
+  overflow: auto;
+  height: 300px;
+  list-style: none;
+  padding: 0;
+  border:dotted;
+  border-color:#CCC;
+/*  margin: 0;*/
+}
+#log li {
+  border-top: 1px solid #ccc;
+  margin: 0;
+  padding: 10px 0;
+}
+
+#status {
+  padding: 5px;
+  color: #fff;
+  background: #ccc;
+}
+
+#status.fail {
+  background: #c00;
+}
+
+#status.success {
+  background: #0c0;
+}
+
+#status.offline {
+  background: #c00;
+}
+
+#status.online {
+  background: #0c0;
+}
+li {
+  margin-bottom: 10px;
+}
+
+.tit{
+	height:36px; 
+	background:#39F;
+	color:#FFF;
+	padding:10px;
+}
+#t1{
+	font-weight: bold;
+	font-size:30px;
+	float:left;
+	margin-left:10px;
+}
+#t2{
+	font-size:14px;
+	float:right;
+	margin-top:16px;
+	margin-right:10px;
+}
+.m1{
+	padding:5px;
+}
+.m2{
+	padding-left:5px;
+}
+.m1 ul{
+	padding-top:5px;
+	padding-left:20px;
+}
+a:link {
+	text-decoration: none;
+	color: #033;
+}
+a:visited {
+	text-decoration: none;
+	color: #033;
+}
+a:hover {
+	text-decoration: none;
+	color: #F00;
+}
+a:active {
+	text-decoration: none;
+	color: #F00;
+}
+</style> 
+</head> 
+<body> 
+<section id="wrapper"> 
+<table width="100%" height="550" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="160" valign="top" bgcolor="#ACD6FF" class="m1">
+    <ul>
+    <li><a href="index.htm">主页</a></li>
+    <li><a href="485view.htm">485数据监视端</a></li>
+    <li><a href="info.htm">运行参数</a></li>
+    </ul>
+    </td>
+    <td valign="top" class="m2">
+<header> 
+<div class="tit" >
+<div id=t1>运行参数</div>
+<div id=t2>韩讯联控</div>
+<br style="float:none">
+</div>
+<hr />
+</header> 
+<table width="100%" border="1" cellspacing="0" cellpadding="5">
+  <tr>
+    <td width="26%">MQTT地址</td>
+    <td width="74%">{mqttip}</td>
+  </tr>
+  <tr>
+    <td>MQTT端口</td>
+    <td>{mqttport}</td>
+  </tr>
+  <tr>
+    <td>MQTT客户端ID</td>
+    <td>{mqttcid}</td>
+  </tr>
+  <tr>
+    <td>MQTT用户名</td>
+    <td>{mqttuser}</td>
+  </tr>
+  <tr>
+    <td>MQTT密码</td>
+    <td>{mqttpasswd}</td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>485总线波特率</td>
+    <td>{uart1brt}</td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>设备ID</td>
+    <td>{devuuid}</td>
+  </tr>
+  <tr>
+    <td>设备名称</td>
+    <td>{devname}</td>
+  </tr>
+  <tr>
+    <td>设备类型</td>
+    <td>{devflag}</td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>服务器1</td>
+    <td>{tcpserv1}</td>
+  </tr>
+  <tr>
+    <td>服务器2</td>
+    <td>{tcpserv2}</td>
+  </tr>
+</table>
+
+</td>
+  </tr>
+</table>
+</section> 
+
+</body> 
+</html>

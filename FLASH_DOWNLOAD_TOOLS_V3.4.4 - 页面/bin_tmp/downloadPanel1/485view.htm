@@ -1,0 +1,222 @@
+﻿<!DOCTYPE html> 
+<html lang="en"> 
+<head> 
+<meta charset=utf-8 /> 
+<meta name="viewport" content="width=620" /> 
+<title>韩讯联控KT485</title> 
+<style> 
+#chat { width: 97%; }
+.them { font-weight: bold; }
+.them:before { content: 'feedback: '; color:#036; font-size: 14px; }
+#log {
+  overflow: auto;
+  height: 300px;
+  list-style: none;
+  padding: 0;
+  border:dotted;
+  border-color:#CCC;
+/*  margin: 0;*/
+}
+#log li {
+  border-top: 1px solid #ccc;
+  margin: 0;
+  padding: 10px 0;
+}
+
+#status {
+  padding: 5px;
+  color: #fff;
+  background: #ccc;
+}
+
+#status.fail {
+  background: #c00;
+}
+
+#status.success {
+  background: #0c0;
+}
+
+#status.offline {
+  background: #c00;
+}
+
+#status.online {
+  background: #0c0;
+}
+li {
+  margin-bottom: 10px;
+}
+
+.tit{
+	height:36px; 
+	background:#39F;
+	color:#FFF;
+	padding:10px;
+}
+#t1{
+	font-weight: bold;
+	font-size:30px;
+	float:left;
+	margin-left:10px;
+}
+#t2{
+	font-size:14px;
+	float:right;
+	margin-top:16px;
+	margin-right:10px;
+}
+.m1{
+	padding:5px;
+}
+.m2{
+	padding-left:5px;
+}
+.m1 ul{
+	padding-top:5px;
+	padding-left:20px;
+}
+a:link {
+	text-decoration: none;
+	color: #033;
+}
+a:visited {
+	text-decoration: none;
+	color: #033;
+}
+a:hover {
+	text-decoration: none;
+	color: #F00;
+}
+a:active {
+	text-decoration: none;
+	color: #F00;
+}
+</style> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head> 
+<body> 
+<section id="wrapper"> 
+<table width="100%" height="550" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="160" valign="top" bgcolor="#ACD6FF" class="m1">
+    <ul>
+    <li><a href="index.htm">主页</a></li>
+    <li><a href="485view.htm">485数据监视端</a></li>
+    <li><a href="info.htm">运行参数</a></li>
+    </ul>
+    </td>
+    <td valign="top" class="m2">
+<header> 
+<div class="tit" >
+<div id=t1>KT485数据监视端</div>
+<div id=t2>韩讯联控</div>
+<br style="float:none">
+</div>
+<hr />
+</header> 
+
+<article> 
+终端地址: 
+<input type="text" name="ipstr" id="ipstr" value="" size="30" placeholder="enter the IP" />
+<input type="button" id="btnconnect" value="连接" /> <br>
+<p id="status">未连接</p> 
+<ul id="log"></ul> 
+发送至485总线 
+<input type="text" id="chat" value="0a 0b 0c 01 02 03" size="50" placeholder="enter hex data" style="width:70%" /> 
+<input type="button" id="sendBtn" value="发送" /> 
+</article> </td>
+  </tr>
+</table>
+
+<script>
+////////////////////////////////////
+ipstr.value=location.hostname+":1000";
+////////////////////////////////////
+function trCharToHexStr(buf) {
+	var r="";
+	var w = new Array();
+	var hexes = new Array ("0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f");
+	for (var i=0; i<buf.length; i++)
+	{
+		r +=hexes [buf.charCodeAt(i) >> 4] + hexes [buf.charCodeAt(i) & 0xf]+' ';
+	}
+	return r;
+}
+function trHexStrToSend(str)
+{
+	var ret="";
+	var ch = new Array;
+	ch = str.split(" ");
+	for(i=0;i<ch.length;i++)
+	{ret+=String.fromCharCode(parseInt(ch[i],16));}
+	return escape(ret);
+}
+
+//////////////////////////////////////////
+//websocket
+function openConnection() {
+  // uses global 'conn' object
+  if (conn.readyState === undefined || conn.readyState > 1) {
+    conn = new WebSocket('ws://'+ipstr.value); 
+    conn.onopen = function () {
+      state.className = 'success';
+      state.innerHTML = '连接数据终端成功';
+    };
+ 
+    conn.onmessage = function (event) {
+	  var dec=unescape(event.data);
+      var message = trCharToHexStr(dec);
+      var date = new Date();
+      h = date.getHours() + ':';
+      m = date.getMinutes() + ':';
+      s = date.getSeconds(); 
+      message='['+h+m+s+']　　'+message; 
+	  var sf='';
+	  for (var i=0; i<dec.length; i++)
+	  {
+		 var ns=parseInt(dec.charCodeAt(i));
+		 sf+=ns>=32 && ns<=126 ? dec[i]:'.';
+	  }
+      log.innerHTML =log.innerHTML+ '<li class="them">' + message +' ------ '+ sf+ '</li>';
+	  log.scrollTop=log.scrollHeight;
+    };
+    
+    conn.onclose = function (event) {
+      state.className = 'fail';
+      state.innerHTML = 'Socket closed';
+      //重新连接
+      //setTimeout(openConnection, 1000);
+    };
+  }
+}
+
+var log = document.getElementById('log'),
+    chat = document.getElementById('chat'),
+    conn = {},
+    state = document.getElementById('status');
+ 
+if (window.WebSocket === undefined) {
+  state.innerHTML = 'Sockets not supported';
+  state.className = 'fail';
+}
+
+chat.onkeyup=function(event) {
+	// if we're connected
+	if (event.keyCode==13&&conn.readyState === 1) {
+	  conn.send(trHexStrToSend(chat.value));
+	  //chat.value = '';
+	}
+};
+
+btnconnect.onclick=function(event) {
+	openConnection();
+};
+
+sendBtn.onclick=function(event) {
+	conn.send(trHexStrToSend(chat.value));
+};
+
+</script>
+</section> 
+</body> 
+</html>
