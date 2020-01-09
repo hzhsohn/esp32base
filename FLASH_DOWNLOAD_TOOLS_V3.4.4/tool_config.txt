@@ -140,8 +140,8 @@ ESP32_MultiDownload_EFUSE_ERR_HALT:1
 ESP32_SPIDownload_baudrate1:4
 ESP32_SPIDownload_com_port1:COM4
 ESP32_SPIDownload_autostart1:0
-ESP32_SPIDownload_path5#empty;;;
-ESP32_SPIDownload_path4#empty;;;
+ESP32_SPIDownload_path5#selected;..\webpage\info.htm;0x202000;
+ESP32_SPIDownload_path4#selected;..\webpage\index.htm;0x200000;
 ESP32_SPIDownload_path6#empty;;;
 ESP32_SPIDownload_path1#selected;..\build\partitions_singleapp.bin;0x8000;
 ESP32_SPIDownload_path2#selected;..\build\hello_hx-kong.bin;0x10000;

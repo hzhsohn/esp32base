@@ -62,16 +62,8 @@ void uart485Init()
     io_conf.pull_down_en = 0;
     io_conf.pull_up_en = 0;
     gpio_config(&io_conf);
-	//
-    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = GPIO_485DIR2_PIN_SEL;
-    io_conf.pull_down_en = 0;
-    io_conf.pull_up_en = 0;
-    gpio_config(&io_conf);
 	//	
 	gpio_set_level(GPIO_485DIR_IO, 0);
-	gpio_set_level(GPIO_485DIR2_IO, 0);
 
 }
 void uart1485Send(char*buf,int len)
@@ -81,14 +73,6 @@ void uart1485Send(char*buf,int len)
 	uart1_send(buf,len);
 	vTaskDelay(100 / portTICK_PERIOD_MS);
 	gpio_set_level(GPIO_485DIR_IO, 0);
-}
-void uart2485Send(char*buf,int len)
-{
-	gpio_set_level(GPIO_485DIR2_IO, 1);
-	vTaskDelay(10 / portTICK_PERIOD_MS);
-	uart2_send(buf,len);
-	vTaskDelay(100 / portTICK_PERIOD_MS);
-	gpio_set_level(GPIO_485DIR2_IO, 0);
 }
 
 void showmqtt()
@@ -211,72 +195,6 @@ int setMqttStartAndStop(int b)
 	return ret;
 }
 
-int setYunStartAndStop(int b)
-{
-	int ret=0;
-	TagCfgData *pCfgdata=NULL;
-	pCfgdata=(TagCfgData*)get_spi_flash_binary_data(sizeof(TagCfgData),SECTOR_CFG_DATA);
-	pCfgdata->is_yun_start=b;	
-	ret=write_spi_flash_data((uint8_t*)pCfgdata,sizeof(TagCfgData),SECTOR_CFG_DATA);
-	free(pCfgdata);
-	pCfgdata=NULL;
-	//
-	return ret;
-}
-
-///////////////////////////////
-//去除字符串空格
-char *  ltrim( char *str ) {
-    /**去除左边空格**/
-    int length;
-    char *i;
-    char *len;
-    int m = 0;
-    int n = 0;
-
-	if(NULL==str){return NULL;}
-
-	length = strlen( str );
-    i = str;
-    len = str + length;
-    
-    for (; i<len; i++ ) {
-        if ( *i == ' ' || *i == '\t' || *i == '\n' ) {
-            n ++;
-        } else {
-            break;
-        }
-    }
-    for ( m=0; m<=length-n; m++ ) {
-        *(str + m) = *(str + n + m);
-    }
-    return str;
-}        
-
-/**去除右边空格**/
-char *  rtrim( char *str) {
-    char *i;	
-	if(NULL==str){return NULL;}
-    i = str + strlen( str ) - 1;    
-    for (; i>=str; i-- ) {
-        if ( *i == ' ' || *i == '\t' || *i == '\n' ) {
-            *(str + strlen(str) -1) = '\0';
-        } else {
-            break;
-        }
-    }
-    return str;                                                                                                                            
-}
-
-/**去除两边空格**/
-char *  trim(char *str)
-{
-    ltrim(str);
-    rtrim(str);
-    return str;
-}
-
-
 
 //回复搜索硬件消息
 int searchFrameData(char*sendBuf,const char* devUUID,
@@ -354,4 +272,28 @@ void isSearchFrameData(const char* devUUID,
 	sprintf(sendBuf,"RMSD,%s,{\"f\":\"%s\",\"n\":\"%s\"}",devUUID,devflag,devname);
 	sendUDPLastIP((char*)sendBuf,strlen(sendBuf));
 	free(sendBuf);
+}
+
+/////////////////////////////////////////////////////////////////
+//设置继电器工作状态
+int saveRelayState(char* relayState,int len)
+{
+	int ret=0;
+	ret=write_spi_flash_data((uint8_t*)relayState,len,SECTOR_CFG_DEV_STATUS);
+	return ret;
+}
+
+int readRelayState(char* relayState,int len)
+{
+	int ret=1;
+	char *pbuf=NULL;
+	pbuf=(char*)get_spi_flash_binary_data(len,SECTOR_CFG_DEV_STATUS);
+	if(pbuf)
+	{
+		ret=0;
+		memcpy(relayState,pbuf,len);
+		free(pbuf);
+		pbuf=NULL;
+	}
+	return ret;
 }

@@ -12,30 +12,41 @@
 #include "tcpserv.h"
 #include "tcpserv2.h"
 #include "zhHttp.h"
+#include "mini-data.h"
 
 //命令行最大长度
 char g_debugCmdline[255]={0};
 int g_debugCmdlineLen=0;
-//接收到最后时间
-unsigned long g_recvUart1CurrentMillis=0;
-unsigned long g_CacleTime=0;
-//
+
+//串口1接收缓冲
 unsigned char g_recvUart1Buf[255]={0};
 int  g_recvUart1BufLen=0;
 
+//串口2接收缓冲
+uchar g_cache[255]={0};
+unsigned short g_len=0;
+TzhMiniData g_ocCmd;
+uchar g_isGetCmdOk;
+
+//8路继电器的当前状态
+
+
 //
 esp_mqtt_client_handle_t g_mqttClient;
+//
 //中控的订阅地址
+//
 extern char g_msdA_devuuid[72];
 extern char g_msdA_devname[72];
 extern char g_msdA_devflag[72];
 extern char g_msdA_pub[72]; //设备发布
 extern char g_msdA_subscr[72]; //设备订阅
 
-
 //
+//函数定义
+//
+void uart2_func(char*buf,int len);
 static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event);
-void uart1485Recv_cb(unsigned char*buf,int len);
 //
 char*g_webParameter;
 
@@ -43,10 +54,10 @@ char*g_webParameter;
 void cfgInit()
 {
 	//
-	g_recvUart1CurrentMillis=0;
 	g_debugCmdlineLen=0;
 	g_recvUart1BufLen=0;
-	
+	g_len=0;
+
 	LED_WIFI_OnOff(false);	
 	LED_MQTT_OnOff(false);	
 	//mqtt_app_start();
@@ -136,75 +147,6 @@ void mqtt_app_start(void)
 }
 
 
-//按键回调
-void btn_press(int gpio_num, int is_press)
-{
-		if(GPIO_INPUT_IO_0==gpio_num)
-		{
-			static int cur_press_cacal=0;
-			static int is_long_press_ok=0;
-			if(0==is_press)
-			{
-				cur_press_cacal=0;
-				is_long_press_ok=0;
-			}
-			else
-			{			
-
-				if(0==is_long_press_ok)
-				{
-					cur_press_cacal++;
-					if(cur_press_cacal>30)//30大概5秒左右
-					{
-						//长按激活
-						is_long_press_ok=1;
-						//-------------------
-						//长按处理,为系统恢复
-						initFactoryCfgFlash();
-						esp_restart();
-						//-------------------
-						//按键复位
-						is_long_press_ok=0;
-						cur_press_cacal=0;
-					}
-				}
-			}
-		}	
-		
-}
-
-void trans_data_task()
-{	
-	while(1)
-	{
-			//printf("trans_data_task \n");
-
-			//-------------------------
-			//延时等待全部数据接收完后进行场景发送		
-			g_CacleTime++;
-			if(g_recvUart1BufLen>0)
-			{
-				if(g_CacleTime - g_recvUart1CurrentMillis>10)
-				{
-					//数据处理模式
-					uart1485Recv_cb(g_recvUart1Buf,g_recvUart1BufLen);
-					//
-					memset(g_recvUart1Buf,0,g_recvUart1BufLen);
-					g_recvUart1BufLen=0;
-				}
-			}
-
-			//---------------------------
-			//休眠10毫秒
-			vTaskDelay(10 / portTICK_RATE_MS);
-	}
-
-	//-------------------------
-	vTaskDelete(NULL);
-	printf("trans_data_task destory...\n");
-}
-
-
 void uart_debug_read(const char *buf, int len)
 {
 	int isEnter=0;
@@ -282,72 +224,60 @@ void uart1_read(const char *buf, int len)
 		//缓冲数据,在实时循环里作为485输出
 		memcpy(&g_recvUart1Buf[g_recvUart1BufLen],buf,len);
 		g_recvUart1BufLen+=len;
-		g_recvUart1CurrentMillis = g_CacleTime;
-		//printf("uart1_read len=%d ------ %d\n",len,g_recvUart1BufLen);
+
+		//-------------------------	
+		//解析是否为MODBUS协议
+		if(g_recvUart1BufLen >0 )
+		{
+
+			
+			if(g_mqttClient)
+			{
+				//将当前继电器状态反馈到MQTT里
+				esp_mqtt_client_publish(g_mqttClient, g_msdA_pub,"123", 3, 0, 0);
+			}
+		}
 }
 
-//串口2为控制器内部数据处理口
+//串口2为对STM8的单片机
 void uart2_read(const char *buf, int len)
 {
-		printf("uart2_read len=%d ------",len);
-		print16((char*)buf,len);
-		printf("\n");
-		
-		//转发至TCP服务器2
-		tcpserv2_send((char*)buf,len);
+	int i=0;
+	printf("uart2_read data > len=%d > ",len);
+
+	for(i=0;i<len;i++)
+	{
+			if(g_len+1>254){ g_len=0; }
+			g_cache[g_len]=buf[i];
+			g_len++;
+ 
+			if(0xFA==buf[i])
+			{
+				int tmp;
+				_nnc:
+				//获取指令
+				tmp=miniDataGet(g_cache,g_len,&g_ocCmd,&g_isGetCmdOk);
+				//处理指令
+				if(g_isGetCmdOk)
+				{
+					//uart2_func(g_ocCmd.parameter_len,g_ocCmd.parameter);
+				}
+				//调整缓冲区
+				if(tmp>0)
+				{
+					int n;
+					g_len-=tmp;
+					for(n=0;n<g_len;n++)
+					{ g_cache[n]=g_cache[tmp+n]; }
+					goto _nnc;
+				}
+			}
+	}
 }
 
-void websock_read(const char *buf, int len)
-{
-		uart1485Send((char*)buf,len);
-}
-
+//TCP服务器接收
 void tcpserv_read(const char *buf, int len)
 {
-		uart1485Send((char*)buf,len);
-}
-
-void tcpserv2_read(const char *buf, int len)
-{
-		uart2485Send((char*)buf,len);
-}
-
-//串口1 经过延时缓冲的数据内容
-void uart1485Recv_cb(unsigned char*buf,int len)
-{	
-	char* ssmbuf=NULL;
-	ssmbuf=(char*)malloc(128+len*2);
-
-	printf("receive 485 frame > len=%d > ",len);
-	print16((char*)buf,len);
-	printf("\n");
-		
-	//----------------------------------------------------
-	//发送到MQTT网络
-	printf("publish = %s\n",g_msdA_pub);
-	
-	int dstLen=0;
-	char* psbuf=sbufEncode(buf,len,&dstLen);
-	sprintf(ssmbuf,"{\"cmd\":\"lbus\",\"relation\":{\"sbuf\":\"%s\"}}",psbuf);
-	free(psbuf);
-	printf("len=%d >> %s \n",dstLen,ssmbuf);
-	if(g_mqttClient)
-	{
-		//发送场景控制
-		esp_mqtt_client_publish(g_mqttClient, g_msdA_pub,ssmbuf, strlen(ssmbuf), 0, 0);
-	}
-
-	free(ssmbuf);
-	ssmbuf=NULL;
-
-	//----------------------------------------------------
-	//转发至websocket页面上
-	websocket_send((char*)g_recvUart1Buf,g_recvUart1BufLen);
-
-	//----------------------------------------------------
-	//转发至TCP服务器
-	tcpserv_send((char*)g_recvUart1Buf,g_recvUart1BufLen);
-
 }
 
 //UDP回复
@@ -367,12 +297,13 @@ void udp_read(const char *data, int len)
 
 }
 
-//云接收
-void yun_recv(const char *buf, int len)
-{
-	
-}
-
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+//
+// 操作指令
+//
+//
+/////////////////////////////////////////////////////////////////////////////////////////
 void cmd_setmqtt(char* commandline)
 {
 	char*pastr=NULL;
@@ -486,7 +417,6 @@ void cmd_showuart()
 	if(pCfgdata)
 	{
 		printf("uart1 = { %d , 8 , 1 , N } \n",pCfgdata->uart1_baudRate);
-		printf("uart2 = { %d , 8 , 1 , N } \n",pCfgdata->uart2_baudRate);
 	}
 	else
 	{
@@ -523,7 +453,6 @@ void cmd_setuart1(char* commandline)
 			{
 					printf("save uart1 fail.\n");
 			}
-
 		}
 		else
 		{
@@ -533,48 +462,6 @@ void cmd_setuart1(char* commandline)
 	else
 	{
 		printf("set uart1 baudrate error. value=%d\n",uart1_baudrate);
-	}
-	printf("\n");
-}
-
-void cmd_setuart2(char* commandline)
-{
-	char param1[150]={0};
-	char* pstr=NULL;
-	//printf("commandline=%s\n",commandline);
-	pstr=commandline;
-	//
-	strcpy(param1,pstr);
-	trim(param1);
-	//
-	int uart2_baudrate=atoi(param1);
-	if(uart2_baudrate>0)
-	{
-		//
-		TagCfgData *pCfgdata=(TagCfgData*)get_spi_flash_binary_data(sizeof(TagCfgData),SECTOR_CFG_DATA);
-		if(pCfgdata)
-		{
-			pCfgdata->uart2_baudRate=uart2_baudrate;
-			if(0==write_spi_flash_data((uint8_t*)pCfgdata,sizeof(TagCfgData),SECTOR_CFG_DATA))
-			{				
-					printf("set uart2 = { %d , 8 , 1 , N } success .\n",pCfgdata->uart2_baudRate);
-					printf("uart2 enable need restart system... \n");
-					esp_restart();
-			}
-			else
-			{
-					printf("save uart2 fail.\n");
-			}
-
-		}
-		else
-		{
-			printf("set uart2 error. \n");
-		}
-	}
-	else
-	{
-		printf("set uart2 baudrate error. value=%d\n",uart2_baudrate);
 	}
 	printf("\n");
 }
@@ -662,21 +549,10 @@ void cmd_mqtt_start()
 	//
 	esp_restart();
 }
+
 void cmd_mqtt_stop()
 {
 	setMqttStartAndStop(0);
-	//
-	esp_restart();
-}
-void cmd_yun_start()
-{
-	setYunStartAndStop(1);
-	//
-	esp_restart();
-}
-void cmd_yun_stop()
-{
-	setYunStartAndStop(0);
 	//
 	esp_restart();
 }
@@ -707,32 +583,12 @@ void pfWebServ_Callback (char *page, char * parameter)
 		}
 		free(htmldata);
 	}
-	else if(0==strcmp(page,"/485view.htm"))
-	{
-		int nnelen=1024*8;
-		char *htmldata=NULL;
-		//
-		htmldata=(char *)get_spi_flash_binary_data(nnelen, SECTOR_WEBPAGE_2);
-		if(htmldata)
-		{
-			for(i=0;i<nnelen;i++)
-			{
-				if(htmldata[i]==0x00 || htmldata[i]==0xFF)
-				{ break; }
-			}
-			htmldata[i]=0;
-			webSendHeader(i);
-			webSendClient(htmldata,i);
-			//printf("htmldata=%s\n",htmldata);
-		}
-		free(htmldata);
-	}	
 	else if(0==strcmp(page,"/info.htm"))
 	{
 		int nnelen=1024*8;
 		char *htmldata=NULL;
 		//
-		htmldata=(char *)get_spi_flash_binary_data(nnelen, SECTOR_WEBPAGE_3);
+		htmldata=(char *)get_spi_flash_binary_data(nnelen, SECTOR_WEBPAGE_2);
 		if(htmldata)
 		{
 				TagCfgData *pCfgdata=NULL;
@@ -757,9 +613,6 @@ void pfWebServ_Callback (char *page, char * parameter)
 					//
 					itoa(pCfgdata->tcpserv1_port,strbuf,10);
 					replace_str(htmldata,"{tcpserv1}",strbuf,htmldata);
-					itoa(pCfgdata->tcpserv2_port,strbuf,10);
-					replace_str(htmldata,"{tcpserv2}",strbuf,htmldata);
-
 					//
 					for(i=0;i<nnelen;i++)
 					{

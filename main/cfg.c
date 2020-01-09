@@ -32,13 +32,11 @@ void initFactoryCfgFlash()
 			//
 			jsonVal=cJSON_GetObjectItem(json,"uart1_baudRate");
 			cfgdata.uart1_baudRate=jsonVal->valueint;
-			jsonVal=cJSON_GetObjectItem(json,"uart2_baudRate");
-			cfgdata.uart2_baudRate=jsonVal->valueint;
 			//
 			uint8_t mac_addr[12]={0};
 			esp_read_mac(mac_addr, ESP_MAC_WIFI_SOFTAP);
 			//
-			printf("--------------------------1");
+			//printf("--------------------------1");
 			jsonVal=cJSON_GetObjectItem(json,"is_wifi_start");
 			if(jsonVal->valueint)
 			{
@@ -53,11 +51,11 @@ void initFactoryCfgFlash()
 			strncpy(ssbuf,jsonVal->valuestring,64);
 			sprintf(cfgdata.apSSID,"%s%02x%02x%02x",ssbuf,mac_addr[3],mac_addr[4],mac_addr[5]);
 			//
-			printf("--------------------------2");
+			//printf("--------------------------2");
 			jsonVal=cJSON_GetObjectItem(json,"apssid_password");
 			strncpy(ssbuf,jsonVal->valuestring,30);
 			sprintf(cfgdata.apPassword,"%s",ssbuf);
-			printf("--------------------------3");
+			//printf("--------------------------3");
 			//
 			sprintf(cfgdata.devuuid,"HXK%02X%02X%02X%02X%02X%02X%d",mac_addr[0],mac_addr[1],mac_addr[2],
 														mac_addr[3],mac_addr[4],mac_addr[5],rand()%1000);
@@ -83,19 +81,6 @@ void initFactoryCfgFlash()
 			jsonVal=cJSON_GetObjectItem(json,"tcpserv1_port");
 			cfgdata.tcpserv1_port=jsonVal->valueint;
 			//
-			jsonVal=cJSON_GetObjectItem(json,"tcpserv2_port");
-			cfgdata.tcpserv2_port=jsonVal->valueint;
-			//
-			jsonVal=cJSON_GetObjectItem(json,"yun_host");
-			strncpy(ssbuf,jsonVal->valuestring,200);
-			strcpy(cfgdata.yun_host,ssbuf);
-			//
-			jsonVal=cJSON_GetObjectItem(json,"yun_port");
-			cfgdata.yun_port=jsonVal->valueint;
-			//
-			jsonVal=cJSON_GetObjectItem(json,"is_yun_start");
-			cfgdata.is_yun_start=jsonVal->valueint;
-			//
 			write_spi_flash_data((uint8_t*)&cfgdata,sizeof(TagCfgData),SECTOR_CFG_DATA);
 			//
 			cJSON_Delete(json);
@@ -106,7 +91,10 @@ void initFactoryCfgFlash()
 	free(pdefjson);
 }
 
-
+//////////////////////////////////////////////////////
+//
+// Ö´ÐÐ²Ù×÷Ö¸Áî 
+//
 void do_command(char* Cmdline)
 {	
 	char command[196]={0};
@@ -129,13 +117,10 @@ void do_command(char* Cmdline)
 		printf("closewifi                                -- close wifi\n");
 		printf("showuart                                 -- show uart infomation\n");
 		printf("setuart1 <baudrate>                      -- set uart1 baudrate\n");
-		printf("setuart2 <baudrate>                      -- set uart2 baudrate\n");
 		printf("showmqtt                                 -- show mqtt info\n");
 		printf("setmqtt <ip>,<port>                      -- set mqtt ip and port\n");
 		printf("mqttstart                                -- mqtt start\n");
 		printf("mqttstop                                 -- mqtt stop\n");
-		printf("yunstart                                 -- yun start\n");
-		printf("yunstop                                  -- yun stop\n");
 		printf("\n\n");
 	}
 	else if(0==strcmp("factory",command))
@@ -167,10 +152,6 @@ void do_command(char* Cmdline)
 	{
 		cmd_setuart1(Cmdline+strlen(command)+1);
 	}
-	else if(0==strcmp("setuart2",command))
-	{
-		cmd_setuart2(Cmdline+strlen(command)+1);
-	}
 	else if(0==strcmp("showmqtt",command))
 	{				
 		showmqtt();
@@ -190,14 +171,6 @@ void do_command(char* Cmdline)
 	else if(0==strcmp("setmqttinfo",command))
 	{
 		cmd_setmqttinfo(Cmdline);
-	}
-	else if(0==strcmp("yunstart",command))
-	{
-		cmd_yun_start();
-	}
-	else if(0==strcmp("yunstop",command))
-	{
-		cmd_yun_stop();
 	}
 	else if(strlen(command)>0)
 	{

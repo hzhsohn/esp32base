@@ -39,19 +39,12 @@ void mqtt_app_start(void);
 void mqtt_proc_data(esp_mqtt_client_handle_t client,char* topic,int topic_len,char*buf,int len);
 
 //-------------------------------------------------------
-void trans_data_task();
-
-//-------------------------------------------------------
 void cfgInit();
 void uart_debug_read(const char *buf, int len);
 void uart1_read(const char *buf, int len);
 void uart2_read(const char *buf, int len);
-void websock_read(const char *buf, int len);
-void btn_press(int gpio_num, int is_press);
 void tcpserv_read(const char *buf, int len);
-void tcpserv2_read(const char *buf, int len);
 void udp_read(const char *data, int len);
-void yun_recv(const char *buf, int len);
 void pfWebServ_Callback (char *page, char * parameter);
 void pfWebServ_Done (char *page);
 //
@@ -62,7 +55,6 @@ void cmd_setmqttinfo(char* commandline);
 //
 void cmd_showuart();
 void cmd_setuart1(char* commandline);
-void cmd_setuart2(char* commandline);
 //
 void cmd_restart_sys();
 //

@@ -1,22 +1,17 @@
 {
-"apssid": "Hx-KongKT485_",
+
+"apssid": "Hx-KongKG_",
 "apssid_password": "",
-"is_wifi_start": 1,
+"is_wifi_start": 0,
 
 "devname": "KT485-",
 "devflag": "KT485",
 
 "uart1_baudRate":9600,
-"uart2_baudRate":9600,
-
 "tcpserv1_port":1001,
-"tcpserv2_port":1002,
 
 "mqtt_host": "192.168.100.1",
 "mqtt_port": 1883,
-"is_mqtt_start": 0,
+"is_mqtt_start": 0
 
-"yun_host": "iot.d.hx-kong.com",
-"yun_port": 9004,
-"is_yun_start": 0
 }

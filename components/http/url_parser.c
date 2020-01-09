@@ -192,3 +192,58 @@ int replace_str(const char *pInput,const char *pSrc,const char *pDst,char *pOutp
 	 }
 	return ret;
 }
+
+
+
+///////////////////////////////
+//È¥³ý×Ö·û´®¿Õ¸ñ
+char *  ltrim( char *str ) {
+    /**È¥³ý×ó±ß¿Õ¸ñ**/
+    int length;
+    char *i;
+    char *len;
+    int m = 0;
+    int n = 0;
+
+	if(NULL==str){return NULL;}
+
+	length = strlen( str );
+    i = str;
+    len = str + length;
+    
+    for (; i<len; i++ ) {
+        if ( *i == ' ' || *i == '\t' || *i == '\n' ) {
+            n ++;
+        } else {
+            break;
+        }
+    }
+    for ( m=0; m<=length-n; m++ ) {
+        *(str + m) = *(str + n + m);
+    }
+    return str;
+}        
+
+/**È¥³ýÓÒ±ß¿Õ¸ñ**/
+char *  rtrim( char *str) {
+    char *i;	
+	if(NULL==str){return NULL;}
+    i = str + strlen( str ) - 1;    
+    for (; i>=str; i-- ) {
+        if ( *i == ' ' || *i == '\t' || *i == '\n' ) {
+            *(str + strlen(str) -1) = '\0';
+        } else {
+            break;
+        }
+    }
+    return str;                                                                                                                            
+}
+
+/**È¥³ýÁ½±ß¿Õ¸ñ**/
+char *  trim(char *str)
+{
+    ltrim(str);
+    rtrim(str);
+    return str;
+}
+

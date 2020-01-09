@@ -55,8 +55,19 @@
 #include "hxkong_yun.h"
 #include "udp_multicast.h"
 
-
+//定时器
+void timegroup(int timerID);
+//按键
+void task_gpio_thread();
+//网络事件
 static esp_err_t event_handler(void *ctx, system_event_t *event);
+
+//按键功能
+EzhKeyEvent ev;
+EzhKeyState btnFactory;
+EzhKeyState btn1;
+EzhKeyState btn2;
+EzhKeyState btn3;
 
 //-------------------------------------------------------
 //mqtt使用的变量
@@ -65,12 +76,6 @@ char g_msdA_devname[128];
 char g_msdA_devflag[128];
 char g_msdA_pub[128];		//设备发布
 char g_msdA_subscr[128];	//设备订阅
-
-//定时器
-void timegroup(int timerID)
-{
-
-}
 
 static esp_err_t event_handler(void *ctx, system_event_t *event)
 {
@@ -213,62 +218,56 @@ void app_main()
 	//初始化网卡
 	printf("eht init...\n");
 	app_eth();
+
+	//LED
+	ledInit();
 	
 	//-----------------------------------------------------------------------
 	//初始化服务
 	//printf("timer init...\n");
 	//timer_group_init(timegroup,1.0f,0);
 	//xTaskCreate(timer_evt_task, "timer_evt_task", 2*1024, NULL, 5, NULL);
-
-	//工作线程	
-	xTaskCreate(trans_data_task, "trans_data_task", 6*1024, NULL, 1, NULL);
-
+	
 	printf("gpio init...\n");
-	h_gpio_init(btn_press);
-	ledInit();
+	zhSCM_initKey(&btnFactory,GPIO_NUM_39);
+	zhSCM_initKey(&btn1,GPIO_NUM_34);
+	zhSCM_initKey(&btn2,GPIO_NUM_35);
+	zhSCM_initKey(&btn3,GPIO_NUM_13);
 	xTaskCreate(task_gpio_thread, "task_gpio", 4*1024, NULL, 10, NULL);
 	
 	printf("uart_debug init...\n");
 	uart_debug_init(uart_debug_read);
 	xTaskCreate(task_uart_debug, "uart_dbg_task", 4*1024, NULL, 4, NULL);
 
-	printf("uart1 init...baudRate=%d\n",pCfgdata->uart1_baudRate);
+	printf("485 init...baudRate=%d\n",pCfgdata->uart1_baudRate);
 	uart1_init(uart1_read , pCfgdata->uart1_baudRate);
 	uart485Init();
 	xTaskCreate(task_uart1, "tag_uart1_task", 4*1024, NULL, 4, NULL);
 	
-	printf("uart2 init...baudRate=%d\n",pCfgdata->uart2_baudRate);
-	uart2_init(uart2_read , pCfgdata->uart2_baudRate);
+	printf("uart2 -> mcu ... baudRate=19200\n");
+	uart2_init(uart1_read , 19200);
 	xTaskCreate(task_uart2, "tag_uart2_task", 4*1024, NULL, 4, NULL);
-	
+
 	printf("web init...port=%d\n",80);
 	webserver_init(80,pfWebServ_Callback,pfWebServ_Done);
 	xTaskCreate(app_webserver_task_accept, "tweb_task", 4*1024, NULL, 4, NULL);
 	xTaskCreate(app_webserver_task_recv, "tweb_task", 6*1024, NULL, 4, NULL);
 	
-	printf("websocket init...port=%d\n",1000);
-	websocket_init(websock_read, 1000);	
-	xTaskCreate(app_websocket_task_accept, "websk_accept", 4*1024, NULL, 5, NULL);
-	xTaskCreate(app_websocket_task_recv, "websk_recv", 6*1024, NULL, 5, NULL);
-	
-	printf("tcpserv init...port=%d\n",pCfgdata->tcpserv1_port);
-	tcpserv_init(tcpserv_read, pCfgdata->tcpserv1_port);	
-	xTaskCreate(app_tcpserv_task_accept, "tcpserv_accept", 4*1024, NULL, 5, NULL);
-	xTaskCreate(app_tcpserv_task_recv, "tcpserv_recv", 6*1024, NULL, 5, NULL);
-	
-	printf("tcpserv init...port=%d\n",pCfgdata->tcpserv2_port);
-	tcpserv2_init(tcpserv2_read, pCfgdata->tcpserv2_port);	
-	xTaskCreate(app_tcpserv2_task_accept, "tcpserv2_accept", 4*1024, NULL, 5, NULL);
-	xTaskCreate(app_tcpserv2_task_recv, "tcpserv2_recv", 6*1024, NULL, 5, NULL);
+	if(pCfgdata->tcpserv1_port > 0)
+	{
+		printf("tcpserv init...port=%d\n",pCfgdata->tcpserv1_port);
+		tcpserv_init(tcpserv_read, pCfgdata->tcpserv1_port);	
+		xTaskCreate(app_tcpserv_task_accept, "tcpserv_accept", 4*1024, NULL, 5, NULL);
+		xTaskCreate(app_tcpserv_task_recv, "tcpserv_recv", 6*1024, NULL, 5, NULL);
+	}
+	else
+	{
+		printf("tcpserv port=0 not startup");
+	}
 	
 	printf("udp init...\n");
 	app_mcast(udp_read);
 
-	if(pCfgdata->is_yun_start)
-	{
-		printf("yun init..%s:%d\n",pCfgdata->yun_host,pCfgdata->yun_port);
-		yun_init(yun_recv , pCfgdata->yun_host , pCfgdata->yun_port);
-	}
 	///////////////////////////////////////////////////////////////////////
 	//初始化其它服务
 	cfgInit();
@@ -308,3 +307,92 @@ void app_main()
 	
 }
 
+
+
+//定时器
+void timegroup(int timerID)
+{
+
+}
+
+//按键
+void task_gpio_thread()
+{
+    while (1) 
+	{
+	  
+		//-------------------
+		//长按出厂设置
+		//initFactoryCfgFlash();
+		//esp_restart();
+
+		//出厂设置
+		ev=zhSCM_keyState(&btnFactory,GPIO_NUM_39);
+		switch(ev)
+		{
+				case ZH_KEY_EVENT_NONE:
+					break;
+				case ZH_KEY_EVENT_DOWN:
+					printf("GPIO_NUM_39 ZH_KEY_EVENT_DOWN\n");
+					break;
+				case ZH_KEY_EVENT_PRESS:
+					printf("GPIO_NUM_39 ZH_KEY_EVENT_PRESS\n");
+					break;
+				case ZH_KEY_EVENT_UP:					
+					printf("GPIO_NUM_39 ZH_KEY_EVENT_UP\n");
+				break;
+		}
+		//按键1
+		ev=zhSCM_keyState(&btn1,GPIO_NUM_34);
+		switch(ev)
+		{
+				case ZH_KEY_EVENT_NONE:
+					break;
+				case ZH_KEY_EVENT_DOWN:
+					printf("GPIO_NUM_34 ZH_KEY_EVENT_DOWN\n");
+					break;
+				case ZH_KEY_EVENT_PRESS:
+					printf("GPIO_NUM_34 ZH_KEY_EVENT_PRESS\n");
+					break;
+				case ZH_KEY_EVENT_UP:
+					printf("GPIO_NUM_34 ZH_KEY_EVENT_UP\n");
+					break;
+		}
+		//按键2
+		ev=zhSCM_keyState(&btn2,GPIO_NUM_35);
+		switch(ev)
+		{
+				case ZH_KEY_EVENT_NONE:
+					break;
+				case ZH_KEY_EVENT_DOWN:
+					printf("GPIO_NUM_35 ZH_KEY_EVENT_DOWN\n");
+					break;
+				case ZH_KEY_EVENT_PRESS:
+					printf("GPIO_NUM_35 ZH_KEY_EVENT_PRESS\n");
+					break;
+				case ZH_KEY_EVENT_UP:
+					printf("GPIO_NUM_35 ZH_KEY_EVENT_UP\n");
+					break;
+		}
+		//按键3
+		ev=zhSCM_keyState(&btn3,GPIO_NUM_13);
+		switch(ev)
+		{
+				case ZH_KEY_EVENT_NONE:
+					break;
+				case ZH_KEY_EVENT_DOWN:
+					printf("GPIO_NUM_13 ZH_KEY_EVENT_DOWN\n");
+					break;
+				case ZH_KEY_EVENT_PRESS:
+					printf("GPIO_NUM_13 ZH_KEY_EVENT_PRESS\n");
+					break;
+				case ZH_KEY_EVENT_UP:
+					printf("GPIO_NUM_13 ZH_KEY_EVENT_UP\n");
+					break;
+		}
+
+		vTaskDelay(20 / portTICK_PERIOD_MS);
+    }
+
+	vTaskDelete(NULL); 
+}

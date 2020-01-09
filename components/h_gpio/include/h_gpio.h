@@ -13,26 +13,88 @@ extern "C" {
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 
-
-//输入按键配置
-#define GPIO_INPUT_IO_0				GPIO_NUM_39//WIFI打开按键
-#define GPIO_INPUT_PIN_SEL			((((uint64_t)1)<<GPIO_INPUT_IO_0))
-#define BTN1_GetStatus				gpio_get_level(GPIO_INPUT_IO_0)
 /*
-//输入按键配置2
-#define GPIO_INPUT_IO_2				GPIO_NUM_34//按键1
-#define GPIO_INPUT_PIN_SEL2			((((uint64_t)1)<<GPIO_INPUT_IO_2))
-#define BTN2_GetStatus				gpio_get_level(GPIO_INPUT_IO_2)
+  2018/7/9
+  Copyright (C) Han.zhihong
+	
+	
+例子:
+	
+	EzhKeyEvent ev;
+	EzhKeyState btn1;//一个GPIO对应一个EzhKeyState对象
+	EzhKeyState btn2;
 
-//输入按键配置3
-#define GPIO_INPUT_IO_3				GPIO_NUM_35//按钮2
-#define GPIO_INPUT_PIN_SEL3			((((uint64_t)1)<<GPIO_INPUT_IO_3))
-#define BTN3_GetStatus				gpio_get_level(GPIO_INPUT_IO_3)
+	zhSCM_initKey(&btn1,GPIO_NUM_39);
+	zhSCM_initKey(&btn2,GPIO_NUM_36);
+
+   
+//按键
+void task_gpio_thread()
+{
+    while (1) 
+	{	  
+		//-------------------
+		//长按出厂设置
+		//initFactoryCfgFlash();
+		//esp_restart();
+
+		//出厂设置
+		ev=zhSCM_keyState(&btnFactory,GPIO_NUM_39);
+		switch(ev)
+		{
+				case ZH_KEY_EVENT_NONE:
+					break;
+				case ZH_KEY_EVENT_DOWN:
+					break;
+				case ZH_KEY_EVENT_PRESS:
+					break;
+				case ZH_KEY_EVENT_UP:					
+					printf("GPIO_NUM_39 ZH_KEY_EVENT_UP\n");
+				break;
+		}
+		//按键1
+		ev=zhSCM_keyState(&btn1,GPIO_NUM_34);
+		switch(ev)
+		{
+				case ZH_KEY_EVENT_NONE:
+					break;
+				case ZH_KEY_EVENT_DOWN:
+					break;
+				case ZH_KEY_EVENT_PRESS:
+					break;
+				case ZH_KEY_EVENT_UP:
+					printf("GPIO_NUM_34 ZH_KEY_EVENT_UP\n");
+					break;
+		}
+		vTaskDelay(20 / portTICK_PERIOD_MS);
+    }
+
+	vTaskDelete(NULL); 
+}
+	
 */
-//回调
-typedef void PF_GPIO_STATUS (int gpio_num, int is_press);
-void h_gpio_init(PF_GPIO_STATUS* pf);
-void task_gpio_thread();
+
+
+/*******************************************************************************
+* 类型         : 按键
+* 描述          : 按键设置的状态和事件标识
+*******************************************************************************/
+typedef enum _EzhKeyState{
+   ZH_KEY_STATE_0,
+   ZH_KEY_STATE_1,
+   ZH_KEY_STATE_2,
+   ZH_KEY_STATE_3,
+}EzhKeyState;
+typedef enum _EzhKeyEvent{
+   ZH_KEY_EVENT_NONE,
+   ZH_KEY_EVENT_DOWN,
+   ZH_KEY_EVENT_PRESS,
+   ZH_KEY_EVENT_UP
+}EzhKeyEvent;
+
+
+void zhSCM_initKey(EzhKeyState *status, gpio_num_t pin);
+EzhKeyEvent zhSCM_keyState(EzhKeyState *status,gpio_num_t pin);
 
 
 #ifdef __cplusplus

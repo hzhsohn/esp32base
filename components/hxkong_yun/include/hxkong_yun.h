@@ -1,3 +1,10 @@
+/*
+使用:
+printf("yun init..%s:%d\n",pCfgdata->yun_host,pCfgdata->yun_port);
+		yun_init(yun_recv , pCfgdata->yun_host , pCfgdata->yun_port);
+
+*/
+
 #ifndef _HXKONG_YUN_PROC_H__
 
 #include "mini-data.h"

@@ -32,6 +32,18 @@ typedef struct
 url_t *url_parse(char *uri);
 
 void url_free(url_t *url);
+
+//Ìæ»»×Ö·û´®
 int replace_str(const char *pInput,const char *pSrc,const char *pDst,char *pOutput);
+
+//
+//È¥³ýÓÒ¿Õ¸ñ
+char *  ltrim( char *str);
+//È¥³ý×ó¿Õ¸ñ 
+char *  rtrim( char *str);
+//È¥³ýÁ½±ß¿Õ¸ñ
+char *  trim(char *str);
+
+
 
 #endif /* _URL_PARSER_H_ */

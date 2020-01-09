@@ -16,11 +16,8 @@ void ledInit();
 //485方向
 #define GPIO_485DIR_IO				GPIO_NUM_4
 #define GPIO_485DIR_PIN_SEL			(((uint64_t)1)<<GPIO_485DIR_IO) 
-#define GPIO_485DIR2_IO				GPIO_NUM_13
-#define GPIO_485DIR2_PIN_SEL		(((uint64_t)1)<<GPIO_485DIR2_IO) 
 void uart485Init();
 void uart1485Send(char*buf,int len);
-void uart2485Send(char*buf,int len);
 
 //
 void showmqtt();
@@ -32,14 +29,6 @@ int setOpenWifi(char*ssid,char*password);
 int setCloseWifi();
 //
 int setMqttStartAndStop(int b);
-int setYunStartAndStop(int b);
-//
-//去除右空格
-char *  ltrim( char *str);
-//去除左空格 
-char *  rtrim( char *str);
-//去除两边空格
-char *  trim(char *str);
 
 //回复搜索硬件消息
 int searchFrameData(char*sendBuf,const char* devUUID,
@@ -50,6 +39,11 @@ int searchFrameData(char*sendBuf,const char* devUUID,
 void isSearchFrameData(const char* devUUID,
 					const char* devname,
 					const char* devflag);
+
+
+//设置继电器工作状态
+int saveRelayState(char* relayState,int len);
+int readRelayState(char* relayState,int len);
 
 #define _TRANS_DATA_AH_H___
 #endif

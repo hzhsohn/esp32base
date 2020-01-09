@@ -5,6 +5,7 @@
 #define INIT_HARDWARE_FLAG			1111112
 //数据储存位置
 #define SECTOR_CFG_DATA			400		//0x190000
+#define SECTOR_CFG_DEV_STATUS	510		//0x1FE000
 #define SECTOR_CFG_JSON			511		//0x1FF000
 #define SECTOR_WEBPAGE_1		512		//0x200000
 #define SECTOR_WEBPAGE_2		514		//0x202000
@@ -26,14 +27,8 @@ typedef struct _TagCfgData{
 	char staSSID[96];
 	char staPassword[34];
 	int uart1_baudRate;
-	int uart2_baudRate;
 	//TCP服务器的端口
 	int tcpserv1_port;
-	int tcpserv2_port;
-	//
-	char yun_host[128];
-	int yun_port;
-	int is_yun_start;
 	//
 	char devuuid[64];
 	char devname[32];

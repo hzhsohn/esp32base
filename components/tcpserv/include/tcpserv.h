@@ -16,6 +16,17 @@
 #include "lwip/sys.h"
 #include <lwip/netdb.h>
 
+/*
+
+สนำร:
+	
+	printf("tcpserv init...port=%d\n",pCfgdata->tcpserv1_port);
+	tcpserv_init(tcpserv_read, pCfgdata->tcpserv1_port);	
+	xTaskCreate(app_tcpserv_task_accept, "tcpserv_accept", 4*1024, NULL, 5, NULL);
+	xTaskCreate(app_tcpserv_task_recv, "tcpserv_recv", 6*1024, NULL, 5, NULL);
+	
+
+*/
 typedef void PF_TCPSERV_READ (const char *buf, int len);
 
 void app_tcpserv_task_accept();
